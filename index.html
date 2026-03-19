@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lingo Up Academy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-from: #f5f5f7;
+      --bg-to: #e8e8ec;
+      --card-bg: rgba(255,255,255,0.95);
+      --text-primary: #1d1d1f;
+      --text-muted: #b0b0b8;
+      --border: rgba(0,0,0,0.09);
+      --shadow: 0 20px 60px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06);
+      --shadow-sm: 0 4px 12px rgba(0,0,0,0.06);
+      --radius-card: 32px;
+      --radius-btn: 20px;
+      --surface: rgba(245,245,247,0.94);
+      --accent: #1d1d1f;
+      --text-3: #8e8e93;
+    }
+
+    [data-theme="dark"] {
+      --bg-from: #111113;
+      --bg-to: #1a1a1e;
+      --card-bg: rgba(30,30,34,0.98);
+      --text-primary: #f0f0f2;
+      --text-muted: #56565e;
+      --border: rgba(255,255,255,0.08);
+      --shadow: 0 20px 60px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.3);
+      --shadow-sm: 0 4px 12px rgba(0,0,0,0.3);
+      --surface: rgba(20,20,24,0.96);
+      --accent: #f0f0f2;
+      --text-3: #6e6e78;
+    }
+
+    /* Dark mode overrides — component specific */
+    [data-theme="dark"] select {
+      background: rgba(30,30,34,0.9);
+      color: var(--text-primary);
+      border-color: var(--border);
+    }
+    [data-theme="dark"] .face { background: rgba(30,30,34,0.98); }
+    [data-theme="dark"] .face.back { background: rgba(36,36,42,0.98); border-color: rgba(255,255,255,0.06); }
+    [data-theme="dark"] .arrow-btn { background: rgba(30,30,34,0.9); color: var(--text-primary); }
+    [data-theme="dark"] .arrow-btn:hover { background: rgba(45,45,52,1); }
+    [data-theme="dark"] .lesson-btn { background: rgba(30,30,34,0.88); }
+    [data-theme="dark"] .current-pill { background: rgba(30,30,34,0.6); }
+    [data-theme="dark"] .pill-lesson { color: #aaa; }
+    [data-theme="dark"] .q-card { background: rgba(30,30,34,0.98); }
+    [data-theme="dark"] .question-box { background: rgba(20,20,24,0.8); }
+    [data-theme="dark"] .opt-btn { background: rgba(30,30,34,0.9); border-color: rgba(255,255,255,0.1); color: var(--text-primary); }
+    [data-theme="dark"] .opt-btn.selected { background: rgba(50,50,58,0.9); border-color: var(--text-primary); }
+    [data-theme="dark"] .opt-text { color: var(--text-primary); }
+    [data-theme="dark"] .wrong-item { background: #1e1010; border-color: #7f1d1d; }
+    [data-theme="dark"] .wrong-section { border-color: rgba(255,255,255,0.08); }
+    [data-theme="dark"] .dict-card { background: rgba(30,30,34,0.98); }
+    [data-theme="dark"] .dict-card-title { color: var(--text-primary); }
+    [data-theme="dark"] .dict-input { background: rgba(20,20,24,0.8); border-color: rgba(255,255,255,0.1); color: var(--text-primary); }
+    [data-theme="dark"] .dict-input:focus { border-color: rgba(255,255,255,0.35); box-shadow: 0 0 0 3px rgba(255,255,255,0.07); }
+    [data-theme="dark"] .dict-input::placeholder { color: rgba(255,255,255,0.2); }
+    [data-theme="dark"] .dict-submit { background: #f0f0f2; color: #1d1d1f; }
+    [data-theme="dark"] .action-btn { background: #f0f0f2; color: #1d1d1f; }
+    [data-theme="dark"] .action-btn:disabled { background: #2e2e34; color: #555; }
+    [data-theme="dark"] .start-btn { background: #f0f0f2; color: #1d1d1f; }
+    [data-theme="dark"] .next-btn { background: #f0f0f2; color: #1d1d1f; }
+    [data-theme="dark"] .retry-btn { background: #f0f0f2; color: #1d1d1f; }
+    [data-theme="dark"] .next-btn { background: #f0f0f2; color: #1d1d1f; }
+    [data-theme="dark"] .retry-btn { background: #f0f0f2; color: #1d1d1f; }
+    [data-theme="dark"] .cur-num,
+    [data-theme="dark"] .word-text,
+    [data-theme="dark"] .sent-text { color: var(--text-primary); }
+
+    /* ── Theme toggle button ── */
+    .theme-toggle {
+      position: fixed; top: 16px; right: 16px; z-index: 500;
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all .2s ease; font-size: 18px;
+      color: var(--text-primary);
+    }
+    .theme-toggle:hover { transform: scale(1.1); box-shadow: var(--shadow); }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(160deg, var(--bg-from) 0%, var(--bg-to) 100%);
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      color: var(--text-primary);
+    }
+
+    /* ── Pages ── */
+    .page {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1rem 6rem;
+      min-height: 100vh;
+    }
+    .page.active { display: flex; }
+
+    /* ── Shared: eyebrow + selectors ── */
+    .top-area { text-align: center; margin-bottom: 2.5rem; }
+    .eyebrow {
+      font-size: 10px; font-weight: 600; letter-spacing: 3px;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 1.25rem;
+    }
+    .selectors { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    select {
+      height: 40px; padding: 0 16px; border-radius: var(--radius-btn);
+      border: 1px solid var(--border); background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(8px); font-size: 14px; font-weight: 500;
+      color: var(--text-primary); cursor: pointer; min-width: 130px;
+      font-family: inherit; outline: none; transition: box-shadow .2s;
+    }
+    select:focus { box-shadow: 0 0 0 2px rgba(0,0,0,0.12); }
+
+    /* ══════════════════════════════
+       FLASHCARD PAGE
+    ══════════════════════════════ */
+    .fc-area { display: flex; flex-direction: column; align-items: center; width: 100%; }
+
+    .scene {
+      width: 540px; max-width: 100%; height: 340px;
+      perspective: 1400px; cursor: pointer;
+      border-radius: var(--radius-card);
+    }
+    .scene:hover .inner { box-shadow: 0 28px 72px rgba(0,0,0,0.14), 0 6px 20px rgba(0,0,0,0.08); }
+    .inner {
+      width: 100%; height: 100%; position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: var(--radius-card);
+    }
+    .inner.flipped { transform: rotateY(180deg); }
+    .face {
+      position: absolute; inset: 0;
+      backface-visibility: hidden; -webkit-backface-visibility: hidden;
+      background: var(--card-bg); border-radius: var(--radius-card);
+      display: flex; align-items: center; justify-content: center;
+      padding: 2.5rem; box-shadow: var(--shadow);
+    }
+    .face.back { transform: rotateY(180deg); border: 2px solid rgba(0,0,0,0.06); }
+    .word-text { font-size: clamp(24px,5vw,35px); font-weight: 700; color: var(--text-primary); text-align: center; font-family: 'DM Serif Display', serif; }
+    .sent-text { font-size: clamp(15px,3vw,22px); font-weight: 400; color: var(--text-primary); text-align: center; line-height: 1.6; }
+
+    .hint { font-size: 11px; color: #c0c0c8; margin-top: 1rem; letter-spacing: .06em; text-transform: uppercase; user-select: none; }
+
+    .ctrl { display: flex; align-items: center; gap: 32px; margin-top: 1.75rem; }
+    .arrow-btn {
+      width: 52px; height: 52px; border-radius: 50%;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.9);
+      font-size: 20px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-sm); transition: all .15s ease; color: var(--text-primary);
+    }
+    .arrow-btn:hover { background: #fff; transform: scale(1.08); }
+    .arrow-btn:active { transform: scale(0.94); }
+    .counter-box { display: flex; align-items: baseline; gap: 6px; }
+    .cur-num { font-size: 32px; font-weight: 700; color: var(--text-primary); font-family: 'DM Serif Display', serif; }
+    .slash { font-size: 18px; color: #ccc; }
+    .tot-num { font-size: 18px; font-weight: 500; color: #aaa; }
+
+    .progress-track { width: 540px; max-width: 100%; height: 3px; background: rgba(0,0,0,0.08); border-radius: 4px; margin-top: 2rem; overflow: hidden; }
+    .progress-fill  { height: 100%; background: var(--text-primary); border-radius: 4px; transition: width .4s ease; }
+
+    .lesson-nav { display: flex; align-items: center; gap: 10px; width: 540px; max-width: 100%; margin-top: 2.5rem; }
+    .lesson-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 18px; border-radius: 18px;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(12px); cursor: pointer; flex: 1;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.07); text-align: left;
+      transition: all .2s cubic-bezier(0.34,1.56,0.64,1); font-family: inherit;
+    }
+    .lesson-btn:hover:not(:disabled) { transform: translateY(-3px) scale(1.02); box-shadow: 0 12px 32px rgba(0,0,0,0.13); }
+    .lesson-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+    .lesson-btn.next { justify-content: flex-end; text-align: right; }
+    .lesson-btn:disabled { opacity: .28; cursor: not-allowed; background: rgba(255,255,255,0.4); box-shadow: none; border-color: rgba(0,0,0,0.05); }
+    .btn-icon { width: 32px; height: 32px; border-radius: 10px; background: var(--text-primary); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .btn-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .btn-body.right { align-items: flex-end; }
+    .btn-label { font-size: 10px; font-weight: 600; color: #a0a0a8; letter-spacing: .08em; text-transform: uppercase; }
+    .btn-name { font-size: 13px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+
+    .current-pill { display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0; padding: 8px 12px; background: rgba(255,255,255,0.6); border-radius: 12px; border: 1px solid rgba(0,0,0,0.07); backdrop-filter: blur(8px); }
+    .pill-unit { font-size: 9px; font-weight: 700; color: #b0b0b8; letter-spacing: .1em; text-transform: uppercase; }
+    .pill-dot { font-size: 10px; color: #d0d0d8; }
+    .pill-lesson { font-size: 11px; font-weight: 600; color: #555; white-space: nowrap; }
+
+    /* ══════════════════════════════
+       QUIZ PAGE
+    ══════════════════════════════ */
+    .quiz-content { width: 100%; max-width: 720px; }
+
+    .q-card { background: var(--card-bg); border-radius: var(--radius-card); box-shadow: var(--shadow); }
+
+    /* start */
+    .start-card { padding: 3rem 2rem; text-align: center; }
+    .start-icon { font-size: 48px; margin-bottom: 1rem; }
+    .start-title { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; font-family: 'DM Serif Display', serif; }
+    .start-sub { font-size: 14px; color: #888; margin-bottom: 2rem; }
+    .start-btn { height: 52px; padding: 0 2.5rem; border-radius: 26px; border: none; background: var(--text-primary); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .2s ease; }
+    .start-btn:hover { opacity: .88; transform: translateY(-2px); }
+
+    /* quiz */
+    .quiz-card { padding: 2rem; }
+    .progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+    .progress-label { font-size: 12px; font-weight: 600; color: #aaa; white-space: nowrap; }
+    .q-progress-track { flex: 1; height: 4px; background: rgba(0,0,0,0.08); border-radius: 4px; overflow: hidden; }
+    .q-progress-fill { height: 100%; background: var(--text-primary); border-radius: 4px; transition: width .4s ease; }
+    .question-box { margin-bottom: 1.5rem; padding: 1.5rem; background: #f9f9fb; border-radius: 16px; }
+    .question-text { font-size: 18px; font-weight: 600; color: var(--text-primary); line-height: 1.5; font-family: 'DM Serif Display', serif; }
+    .opt-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem; }
+    .opt-btn {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; border-radius: 14px;
+      border: 1.5px solid #e8e8ec; background: #fff;
+      cursor: pointer; text-align: left; width: 100%;
+      font-family: inherit; transition: all .15s ease;
+    }
+    .opt-btn:hover:not(:disabled) { transform: translateX(4px); }
+    .opt-btn.selected { border-color: #1d1d1f; background: #f5f5f7; }
+    .opt-btn.correct  { border-color: #6ee7b7; background: #d1fae5; cursor: default; }
+    .opt-btn.wrong    { border-color: #fca5a5; background: #fee2e2; cursor: default; }
+    .opt-btn.dim      { opacity: .5; cursor: default; }
+    .opt-tag { width: 28px; height: 28px; border-radius: 8px; background: #f0f0f2; color: #555; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .opt-btn.selected .opt-tag { background: #1d1d1f; color: #fff; }
+    .opt-btn.correct  .opt-tag { background: #065f46; color: #fff; }
+    .opt-btn.wrong    .opt-tag { background: #991b1b; color: #fff; }
+    .opt-text { font-size: 15px; color: var(--text-primary); flex: 1; }
+    .opt-icon { font-size: 16px; font-weight: 700; }
+    .opt-btn.correct .opt-icon { color: #065f46; }
+    .opt-btn.wrong   .opt-icon { color: #991b1b; }
+    .action-btn { width: 100%; height: 50px; border-radius: 14px; border: none; background: var(--text-primary); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .action-btn:disabled { background: #d0d0d4; cursor: not-allowed; }
+    .feedback-row { display: flex; align-items: center; gap: 12px; }
+    .feedback { flex: 1; padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 600; }
+    .feedback.correct { background: #d1fae5; color: #065f46; }
+    .feedback.wrong   { background: #fee2e2; color: #991b1b; }
+    .next-btn { height: 46px; padding: 0 20px; border-radius: 12px; border: none; background: var(--text-primary); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; font-family: inherit; transition: opacity .15s; }
+    .next-btn:hover { opacity: .88; }
+
+    /* result */
+    .result-card { padding: 2.5rem 2rem; }
+    .score-circle { width: 100px; height: 100px; border-radius: 50%; background: var(--text-primary); display: flex; align-items: baseline; justify-content: center; margin: 0 auto 1.5rem; padding-top: 24px; }
+    .score-num { font-size: 36px; font-weight: 700; color: #fff; font-family: 'DM Serif Display', serif; }
+    .score-pct { font-size: 16px; color: #aaa; margin-left: 2px; }
+    .result-title { font-size: 24px; font-weight: 700; color: var(--text-primary); text-align: center; margin-bottom: 8px; font-family: 'DM Serif Display', serif; }
+    .result-sub { font-size: 15px; color: #888; text-align: center; margin-bottom: 2rem; }
+    .retry-btn { display: block; width: 100%; height: 50px; border-radius: 14px; border: none; background: var(--text-primary); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; margin-bottom: 2rem; font-family: inherit; transition: opacity .15s; }
+    .retry-btn:hover { opacity: .88; }
+    .wrong-section { border-top: 1px solid #eee; padding-top: 1.5rem; }
+    .wrong-title { font-size: 14px; font-weight: 700; color: #991b1b; margin-bottom: 1rem; }
+    .wrong-item { padding: 12px; border-radius: 12px; background: #fff8f8; border: 1px solid #fecaca; margin-bottom: 10px; }
+    .wrong-q { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; line-height: 1.4; }
+    .wrong-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 4px; }
+    .wrong-lbl  { font-size: 12px; color: #991b1b; font-weight: 600; white-space: nowrap; }
+    .wrong-ans  { font-size: 12px; color: #7f1d1d; }
+    .correct-lbl { font-size: 12px; color: #065f46; font-weight: 600; white-space: nowrap; }
+    .correct-ans { font-size: 12px; color: #064e3b; }
+
+    /* ── Shared empty ── */
+    .empty { font-size: 14px; color: #aaa; text-align: center; padding: 2rem 0; }
+    .hidden { display: none !important; }
+
+    /* ══════════════════════════════
+       DICTIONARY PAGE
+    ══════════════════════════════ */
+    .dict-wrapper {
+      width: 100%; max-width: 720px;
+      display: flex; flex-direction: column; align-items: center; gap: 2rem;
+    }
+    .dict-card {
+      width: 100%; background: rgba(255,255,255,0.95);
+      border-radius: var(--radius-card); box-shadow: var(--shadow);
+      padding: 2.5rem 2rem;
+    }
+    .dict-card-title {
+      font-size: clamp(20px,4vw,26px); font-weight: 700;
+      color: #1d1d1f; font-family: 'DM Serif Display', serif;
+      text-align: center; margin-bottom: 6px;
+    }
+    .dict-card-sub { font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 2rem; }
+    .dict-form { display: flex; gap: 10px; flex-wrap: wrap; }
+    .dict-input {
+      flex: 1; min-width: 0; height: 52px; padding: 0 20px;
+      border-radius: 14px; border: 1.5px solid #e8e8ec;
+      background: #f9f9fb; font-size: 15px;
+      color: var(--text-primary); font-family: inherit;
+      outline: none; transition: border-color .2s, box-shadow .2s;
+    }
+    .dict-input:focus { border-color: #1d1d1f; box-shadow: 0 0 0 3px rgba(29,29,31,0.1); }
+    .dict-input::placeholder { color: #c0c0c8; }
+    .dict-submit {
+      height: 52px; padding: 0 24px; border-radius: 14px; border: none;
+      background: #1d1d1f; color: #fff; font-size: 15px; font-weight: 700;
+      cursor: pointer; font-family: inherit; white-space: nowrap;
+      transition: opacity .15s, transform .15s;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    }
+    .dict-submit:hover { opacity: .85; transform: translateY(-1px); }
+    .dict-submit:active { transform: scale(.97); }
+    @media (max-width: 480px) {
+      .dict-form { flex-direction: column; }
+      .dict-submit { width: 100%; }
+    }
+
+    /* ══════════════════════════════
+       SLIDES PAGE — Modern Redesign
+    ══════════════════════════════ */
+    .sl-content { width: 100%; max-width: 960px; }
+
+    /* Hero select card */
+    .sl-hero {
+      background: #0f0f11;
+      border-radius: 28px;
+      padding: 0;
+      overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.22), 0 8px 24px rgba(0,0,0,0.12);
+      position: relative;
+    }
+    .sl-hero-top {
+      padding: 2.5rem 2.5rem 2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    }
+    .sl-hero-meta { display: flex; flex-direction: column; gap: 4px; }
+    .sl-hero-label { font-size: 10px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.3); }
+    .sl-hero-title { font-size: clamp(18px,3vw,26px); font-weight: 700; color: #fff; font-family: 'Fraunces', serif; }
+    .sl-hero-count { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+    .sl-hero-acts { display: flex; gap: 8px; flex-shrink: 0; }
+
+    .sl-play-btn {
+      display: flex; align-items: center; gap: 8px;
+      height: 44px; padding: 0 20px; border-radius: 22px;
+      border: none; background: #fff; color: #0f0f11;
+      font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+      transition: all .2s ease; white-space: nowrap;
+    }
+    .sl-play-btn:hover { transform: scale(1.04); box-shadow: 0 8px 24px rgba(255,255,255,0.2); }
+    .sl-play-btn svg { width: 16px; height: 16px; }
+
+    .sl-icon-btn {
+      width: 44px; height: 44px; border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.7);
+      font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: all .15s ease; display: flex; align-items: center; justify-content: center;
+    }
+    .sl-icon-btn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+    .sl-icon-btn svg { width: 16px; height: 16px; }
+
+    /* Thumbnail strip */
+    .sl-strip {
+      display: flex; gap: 0; overflow-x: auto; padding: 1.5rem 2.5rem;
+      scrollbar-width: none;
+    }
+    .sl-strip::-webkit-scrollbar { display: none; }
+    .sl-strip-gap { display: flex; gap: 12px; }
+
+    .sl-thumb {
+      flex-shrink: 0; width: 160px; height: 100px;
+      border-radius: 12px; border: 2px solid rgba(255,255,255,0.08);
+      padding: 10px; cursor: pointer;
+      transition: all .18s cubic-bezier(0.34,1.4,0.64,1);
+      display: flex; flex-direction: column; justify-content: space-between;
+      position: relative; overflow: hidden;
+    }
+    .sl-thumb:hover { border-color: rgba(255,255,255,0.45); transform: scale(1.06) translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
+    .sl-thumb.active-thumb { border-color: rgba(255,255,255,0.8); }
+    .sl-thumb-num { font-size: 10px; color: rgba(255,255,255,0.35); font-weight: 700; font-family: 'DM Sans', sans-serif; }
+    .sl-thumb-title { font-size: 11px; color: rgba(255,255,255,0.8); font-weight: 600; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+    /* Empty state */
+    .sl-empty {
+      padding: 4rem 2rem; text-align: center;
+      color: rgba(255,255,255,0.3); font-size: 14px;
+    }
+
+    /* ── Fullscreen show ── */
+    .sl-show { display: none; position: fixed; inset: 0; z-index: 1000; background: #000; }
+    .sl-show.active { display: block; }
+
+    /* Top HUD */
+    .sl-hud {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+      padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 100%);
+      opacity: 0; transition: opacity .3s;
+    }
+    .sl-show:hover .sl-hud, .sl-show.active .sl-hud { opacity: 1; }
+    .sl-hud-left { display: flex; align-items: center; gap: 10px; }
+    .sl-hud-right { display: flex; align-items: center; gap: 8px; }
+
+    .sl-hud-btn {
+      height: 36px; padding: 0 16px; border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.45); backdrop-filter: blur(12px);
+      color: #fff; font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px;
+      transition: background .15s;
+    }
+    .sl-hud-btn:hover { background: rgba(255,255,255,0.18); }
+    .sl-hud-btn svg { width: 14px; height: 14px; }
+
+    .sl-lesson-chip {
+      font-size: 12px; color: rgba(255,255,255,0.5);
+      background: rgba(0,0,0,0.35); backdrop-filter: blur(8px);
+      padding: 6px 14px; border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Thin progress line */
+    .sl-prog {
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: rgba(255,255,255,0.12); z-index: 30;
+    }
+    .sl-prog-fill { height: 100%; background: rgba(255,255,255,0.7); transition: width .35s ease; }
+
+    /* Stage */
+    .sl-stage { position: absolute; inset: 0; overflow: hidden; }
+
+    /* layouts */
+    .sl-layout { position: absolute; inset: 0; display: flex; flex-direction: column; }
+    .sl-title-layout   { align-items: center; justify-content: center; padding: 6%; text-align: center; }
+    .sl-content-layout { justify-content: center; padding: 7% 9%; }
+    .sl-quote-layout   { align-items: center; justify-content: center; padding: 9%; }
+    .sl-image-layout   { align-items: center; justify-content: center; overflow: hidden; }
+
+    .sl-eyebrow   { font-size: clamp(9px,1vw,13px); letter-spacing: 4px; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 1.2rem; }
+    .sl-title-big { font-size: clamp(30px,5.5vw,72px); font-weight: 700; color: #fff; font-family: 'Fraunces', serif; line-height: 1.1; margin-bottom: 1.2rem; max-width: 82%; }
+    .sl-subtitle  { font-size: clamp(14px,1.8vw,24px); color: rgba(255,255,255,0.55); max-width: 58%; line-height: 1.55; }
+    .sl-heading   { font-size: clamp(22px,3.8vw,52px); font-weight: 700; color: #fff; font-family: 'Fraunces', serif; margin-bottom: 1.2rem; line-height: 1.15; }
+    .sl-body      { font-size: clamp(14px,1.7vw,21px); color: rgba(255,255,255,0.7); line-height: 1.7; margin-bottom: .8rem; max-width: 82%; }
+    .sl-bullets   { list-style: none; padding: 0; margin: .75rem 0 0; display: flex; flex-direction: column; gap: 10px; }
+    .sl-bullet    { font-size: clamp(14px,1.7vw,20px); color: rgba(255,255,255,0.78); padding-left: 1.5rem; position: relative; line-height: 1.55; }
+    .sl-bullet::before { content: '▸'; position: absolute; left: 0; color: rgba(255,255,255,0.3); font-size: .85em; }
+
+    .sl-quote-marks  { font-size: clamp(80px,12vw,140px); color: rgba(255,255,255,0.07); font-family: 'Fraunces', serif; line-height: .6; margin-bottom: 1.5rem; align-self: flex-start; }
+    .sl-quote-text   { font-size: clamp(20px,3vw,42px); color: #fff; font-family: 'Fraunces', serif; font-style: italic; text-align: center; line-height: 1.45; max-width: 78%; }
+    .sl-quote-author { font-size: clamp(12px,1.3vw,16px); color: rgba(255,255,255,0.4); margin-top: 2rem; letter-spacing: 2px; text-transform: uppercase; }
+    .sl-full-img     { width: 100%; height: 100%; object-fit: contain; display: block; }
+
+    /* Bottom nav */
+    .sl-nav {
+      position: absolute; bottom: 0; left: 0; right: 0; z-index: 20;
+      padding: 20px 28px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+      opacity: 0; transition: opacity .3s;
+    }
+    .sl-show:hover .sl-nav, .sl-show.active .sl-nav { opacity: 1; }
+
+    .sl-arrow {
+      width: 48px; height: 48px; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(12px);
+      color: #fff; font-size: 18px; cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s ease; flex-shrink: 0;
+    }
+    .sl-arrow:hover:not(:disabled) { background: rgba(255,255,255,0.2); transform: scale(1.1); }
+    .sl-arrow:disabled { opacity: .2; cursor: not-allowed; transform: none; }
+
+    .sl-dots { display: flex; gap: 5px; align-items: center; flex: 1; justify-content: center; flex-wrap: wrap; max-width: 300px; margin: 0 auto; }
+    .sl-dot  { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.3); cursor: pointer; transition: all .25s; border: none; flex-shrink: 0; }
+    .sl-dot.active { width: 24px; border-radius: 3px; background: #fff; }
+
+    /* Animations */
+    @keyframes slInRight { from { opacity:0; transform:translateX(48px) scale(.97); } to { opacity:1; transform:none; } }
+    @keyframes slInLeft  { from { opacity:0; transform:translateX(-48px) scale(.97); } to { opacity:1; transform:none; } }
+    .anim-next { animation: slInRight .35s cubic-bezier(.25,.46,.45,.94) both; }
+    .anim-prev { animation: slInLeft  .35s cubic-bezier(.25,.46,.45,.94) both; }
+
+    @media (max-width: 600px) {
+      .sl-hero-top { padding: 1.5rem; }
+      .sl-strip { padding: 1rem 1.5rem; }
+      .sl-thumb { width: 130px; height: 82px; }
+    }
+
+    /* ══════════════════════════════
+       BOTTOM NAV
+    ══════════════════════════════ */
+    .mob-bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 400;
+      background: var(--surface); backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      padding-bottom: max(0px, env(safe-area-inset-bottom));
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      box-shadow: 0 -2px 16px rgba(0,0,0,0.08);
+    }
+    .mob-bottom-nav-item {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      padding: 12px 8px; padding-bottom: max(12px, calc(8px + env(safe-area-inset-bottom)));
+      border: none; background: none; cursor: pointer;
+      color: var(--text-3); font-size: 11px; font-weight: 600;
+      transition: all 0.2s ease; text-transform: capitalize;
+      letter-spacing: -0.2px; position: relative; min-height: 60px;
+      font-family: inherit;
+    }
+    .mob-bottom-nav-item:hover { background: rgba(0,0,0,0.04); }
+    .mob-bottom-nav-item.active { color: var(--accent); }
+    .mob-bottom-nav-item.active::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0;
+      height: 3px; background: var(--accent); border-radius: 0 0 3px 3px;
+    }
+    .mob-bottom-nav-item svg { width: 24px; height: 24px; transition: transform 0.2s ease; }
+    .mob-bottom-nav-item.active svg { transform: scale(1.15); }
+
+    /* ── Responsive ── */
+    @media (max-width: 580px) {
+      .scene { height: 260px; }
+      .btn-name { max-width: 80px; }
+      .word-text { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════
+     FLASHCARD PAGE
+══════════════════════════════ -->
+<div class="page active" id="page-fc">
+  <div class="top-area">
+    <p class="eyebrow">Profesyonel Bilgi Kartları</p>
+    <div class="selectors">
+      <select id="fc-unit-select"></select>
+      <select id="fc-lesson-select"></select>
+    </div>
+  </div>
+
+  <div class="fc-area">
+    <div class="scene" onclick="fcFlip()">
+      <div class="inner" id="fc-inner">
+        <div class="face front"><span class="word-text" id="fc-word">—</span></div>
+        <div class="face back"><span class="sent-text" id="fc-sent">—</span></div>
+      </div>
+    </div>
+    <p class="hint">Kartı çevirmek için tıkla</p>
+
+    <div class="ctrl">
+      <button class="arrow-btn" onclick="fcNavigate(-1)">←</button>
+      <div class="counter-box">
+        <span class="cur-num" id="fc-cur">01</span>
+        <span class="slash">/</span>
+        <span class="tot-num" id="fc-tot">01</span>
+      </div>
+      <button class="arrow-btn" onclick="fcNavigate(1)">→</button>
+    </div>
+
+    <div class="progress-track">
+      <div class="progress-fill" id="fc-prog" style="width:0%"></div>
+    </div>
+
+    <div class="lesson-nav">
+      <button class="lesson-btn" id="fc-prev-btn" onclick="fcNavigateLesson(-1)" disabled>
+        <div class="btn-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <div class="btn-body">
+          <span class="btn-label">Önceki Ders</span>
+          <span class="btn-name" id="fc-prev-name">—</span>
+        </div>
+      </button>
+
+      <div class="current-pill">
+        <span class="pill-unit" id="fc-pill-unit">—</span>
+        <span class="pill-dot">·</span>
+        <span class="pill-lesson" id="fc-pill-lesson">—</span>
+      </div>
+
+      <button class="lesson-btn next" id="fc-next-btn" onclick="fcNavigateLesson(1)" disabled>
+        <div class="btn-body right">
+          <span class="btn-label">Sonraki Ders</span>
+          <span class="btn-name" id="fc-next-name">—</span>
+        </div>
+        <div class="btn-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     QUIZ PAGE
+══════════════════════════════ -->
+<div class="page" id="page-quiz">
+  <div class="top-area">
+    <p class="eyebrow">Quiz</p>
+    <div class="selectors">
+      <select id="q-unit-select"></select>
+      <select id="q-lesson-select"></select>
+    </div>
+  </div>
+
+  <div class="quiz-content">
+    <!-- Select -->
+    <div id="q-phase-select" class="q-card start-card">
+      <div class="start-icon">📝</div>
+      <h2 class="start-title" id="q-start-title">—</h2>
+      <p class="start-sub" id="q-start-sub">Yükleniyor…</p>
+      <button class="start-btn" id="q-start-btn" onclick="qStart()">Quize Başla →</button>
+    </div>
+    <!-- Quiz -->
+    <div id="q-phase-quiz" class="q-card quiz-card hidden">
+      <div class="progress-row">
+        <span class="progress-label" id="q-prog-label">1 / 1</span>
+        <div class="q-progress-track"><div class="q-progress-fill" id="q-prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="question-box"><p class="question-text" id="q-question">—</p></div>
+      <div class="opt-list" id="q-opt-list"></div>
+      <div id="q-action-area">
+        <button class="action-btn" id="q-action-btn" onclick="qConfirm()" disabled>Cevapla</button>
+      </div>
+    </div>
+    <!-- Result -->
+    <div id="q-phase-result" class="q-card result-card hidden">
+      <div class="score-circle">
+        <span class="score-num" id="q-score">0</span>
+        <span class="score-pct">%</span>
+      </div>
+      <h2 class="result-title" id="q-result-title">—</h2>
+      <p class="result-sub" id="q-result-sub">—</p>
+      <button class="retry-btn" onclick="qStart()">Tekrar Dene</button>
+      <div id="q-wrong-section" class="wrong-section hidden">
+        <h3 class="wrong-title">Yanlış Cevaplar</h3>
+        <div id="q-wrong-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     DICTIONARY PAGE
+══════════════════════════════ -->
+<div class="page" id="page-dict">
+  <div class="top-area">
+    <p class="eyebrow">Sözlük</p>
+  </div>
+  <div class="dict-wrapper">
+    <div class="dict-card">
+      <h2 class="dict-card-title">Cambridge Dictionary</h2>
+      <p class="dict-card-sub">Hızlıca İngilizce kelimeleri keşfedin</p>
+      <div class="dict-form">
+        <input
+          class="dict-input"
+          id="dict-input"
+          type="text"
+          placeholder="Bir kelime girin..."
+          onkeydown="if(event.key==='Enter') dictSearch()"
+        />
+        <button class="dict-submit" onclick="dictSearch()">Sözlükte Ara</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     SLIDES PAGE
+══════════════════════════════ -->
+<div class="page" id="page-slides">
+  <div class="top-area">
+    <p class="eyebrow">Slaytlar</p>
+    <div class="selectors">
+      <select id="sl-unit-select"></select>
+      <select id="sl-lesson-select"></select>
+    </div>
+  </div>
+  <div class="sl-content">
+    <div class="sl-hero" id="sl-hero">
+
+      <!-- Top bar -->
+      <div class="sl-hero-top">
+        <div class="sl-hero-meta">
+          <span class="sl-hero-label">Slayt Sunumu</span>
+          <span class="sl-hero-title" id="sl-start-title">—</span>
+          <span class="sl-hero-count" id="sl-start-sub">Yükleniyor…</span>
+        </div>
+        <div class="sl-hero-acts" id="sl-actions" style="display:none">
+          <button class="sl-icon-btn" title="PDF İndir" onclick="slDownloadPDF()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+          <button class="sl-icon-btn" title="PPTX İndir" onclick="slDownloadPPTX()" style="color:#f97316;border-color:rgba(249,115,22,.3)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          </button>
+          <button class="sl-play-btn" onclick="slStart()">
+            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Başlat
+          </button>
+        </div>
+      </div>
+
+      <!-- Thumbnail strip -->
+      <div class="sl-strip" id="sl-strip">
+        <div class="sl-strip-gap" id="sl-thumb-grid"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Slide show overlay -->
+<div class="sl-show" id="sl-show">
+  <!-- thin progress line at very top -->
+  <div class="sl-prog"><div class="sl-prog-fill" id="sl-prog-fill" style="width:0%"></div></div>
+
+  <!-- HUD top -->
+  <div class="sl-hud">
+    <div class="sl-hud-left">
+      <button class="sl-hud-btn" onclick="slClose()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Kapat
+      </button>
+      <span class="sl-lesson-chip" id="sl-lesson-chip">—</span>
+    </div>
+    <span style="font-size:13px;color:rgba(255,255,255,.5);font-weight:600" id="sl-count">1 / 1</span>
+    <div class="sl-hud-right">
+      <button class="sl-hud-btn" onclick="slDownloadPDF()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        PDF
+      </button>
+      <button class="sl-hud-btn" onclick="slDownloadPPTX()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        PPTX
+      </button>
+    </div>
+  </div>
+
+  <!-- Stage -->
+  <div class="sl-stage" id="sl-stage"></div>
+
+  <!-- Bottom nav -->
+  <div class="sl-nav">
+    <button class="sl-arrow" id="sl-prev" onclick="slGo(-1)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="sl-dots" id="sl-dots"></div>
+    <button class="sl-arrow" id="sl-next" onclick="slGo(1)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- Theme toggle -->
+<button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Tema değiştir">🌙</button>
+
+<!-- ══════════════════════════════
+     BOTTOM NAV
+══════════════════════════════ -->
+<nav class="mob-bottom-nav">
+  <button class="mob-bottom-nav-item" id="mbn-slides" onclick="showPage('slides')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    Slides
+  </button>
+  <button class="mob-bottom-nav-item active" id="mbn-fc" onclick="showPage('fc')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+    Flashcard
+  </button>
+  <button class="mob-bottom-nav-item" id="mbn-quiz" onclick="showPage('quiz')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    Quiz
+  </button>
+  <button class="mob-bottom-nav-item" id="mbn-dict" onclick="showPage('dict')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    Sözlük
+  </button>
+</nav>
+
+<script>
+// ══════════════════════════════
+//  THEME
+// ══════════════════════════════
+const toggleBtn = document.getElementById('theme-toggle');
+
+function applyTheme(dark) {
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  toggleBtn.innerHTML = dark
+    ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`
+    : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+  localStorage.setItem('theme', dark ? 'dark' : 'light');
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  applyTheme(!isDark);
+}
+
+// Sayfa açılışında kaydedilmiş temayı uygula
+(function() {
+  const saved = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(saved ? saved === 'dark' : prefersDark);
+})();
+
+// ══════════════════════════════
+//  SUPABASE
+// ══════════════════════════════
+const { createClient } = supabase;
+const sb = createClient(
+  "https://gfyjoflgoknsegecrnkp.supabase.co",
+  "sb_publishable_yW7gXitdDET0BYSwTOgLBw_yZK_e57T"
+);
+
+// ══════════════════════════════
+//  ROUTER
+// ══════════════════════════════
+let currentPage = 'fc';
+
+function showPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.mob-bottom-nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('mbn-' + page)?.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function dictSearch() {
+  const term = document.getElementById('dict-input').value.trim();
+  if (term) window.open(
+    `https://dictionary.cambridge.org/tr/arama/ingilizce/direct/?q=${encodeURIComponent(term)}`,
+    '_blank'
+  );
+}
+
+// ══════════════════════════════
+//  SHARED DATA (units + allLessons)
+// ══════════════════════════════
+let sharedUnits = [], sharedAllLessons = [];
+
+async function loadSharedData() {
+  const [u, l] = await Promise.all([
+    sb.from("units").select("id,number,title").order("number"),
+    sb.from("lessons").select("id,number,title,unit_id").order("unit_id").order("number")
+  ]);
+  sharedUnits       = u.data || [];
+  sharedAllLessons  = l.data || [];
+}
+
+// ══════════════════════════════
+//  FLASHCARD
+// ══════════════════════════════
+let fcUnits = [], fcAllLessons = [], fcLessons = [], fcCards = [];
+let fcUnitId = null, fcLessonId = null, fcCurrent = 0, fcFlipped = false;
+
+const fcUnitSel   = document.getElementById('fc-unit-select');
+const fcLessonSel = document.getElementById('fc-lesson-select');
+const fcInner     = document.getElementById('fc-inner');
+const fcWord      = document.getElementById('fc-word');
+const fcSent      = document.getElementById('fc-sent');
+const fcCur       = document.getElementById('fc-cur');
+const fcTot       = document.getElementById('fc-tot');
+const fcProg      = document.getElementById('fc-prog');
+const fcPrevBtn   = document.getElementById('fc-prev-btn');
+const fcNextBtn   = document.getElementById('fc-next-btn');
+const fcPrevName  = document.getElementById('fc-prev-name');
+const fcNextName  = document.getElementById('fc-next-name');
+const fcPillUnit  = document.getElementById('fc-pill-unit');
+const fcPillLsn   = document.getElementById('fc-pill-lesson');
+
+const pad = n => String(n).padStart(2, '0');
+
+async function fcInit() {
+  fcUnits      = sharedUnits;
+  fcAllLessons = sharedAllLessons;
+  if (!fcUnits.length) return;
+  fcUnitSel.innerHTML = fcUnits.map(u =>
+    `<option value="${u.id}">${u.title || 'Ünite ' + u.number}</option>`).join('');
+  fcUnitId = fcUnits[0].id;
+  fcUnitSel.value = fcUnitId;
+  await fcLoadLessons();
+}
+
+async function fcLoadLessons() {
+  const { data } = await sb.from('lessons').select('id,number,title')
+    .eq('unit_id', fcUnitId).order('number');
+  fcLessons = data || [];
+  fcLessonSel.innerHTML = fcLessons.map(l =>
+    `<option value="${l.id}">${l.title || 'Ders ' + l.number}</option>`).join('');
+  if (!fcLessons.length) { fcLessonId = null; return; }
+  fcLessonId = fcLessons[0].id;
+  fcLessonSel.value = fcLessonId;
+  await fcLoadCards();
+}
+
+async function fcLoadCards() {
+  if (!fcLessonId) return;
+  fcWord.textContent = 'Yükleniyor…'; fcSent.textContent = '';
+  const { data } = await sb.from('cards').select('id,word,sentence')
+    .eq('lesson_id', fcLessonId).order('order_index');
+  fcCards = data || [];
+  fcCurrent = 0; fcFlipped = false;
+  fcInner.classList.remove('flipped');
+  fcRenderCard(); fcRenderNav();
+}
+
+function fcRenderCard() {
+  if (!fcCards.length) {
+    fcWord.textContent = 'Bu ders için henüz kart eklenmemiş.';
+    fcSent.textContent = '';
+    fcCur.textContent = '00'; fcTot.textContent = '00';
+    fcProg.style.width = '0%'; return;
+  }
+  fcWord.textContent = fcCards[fcCurrent].word || '';
+  fcSent.textContent = fcCards[fcCurrent].sentence || '';
+  fcCur.textContent  = pad(fcCurrent + 1);
+  fcTot.textContent  = pad(fcCards.length);
+  fcProg.style.width = `${((fcCurrent + 1) / fcCards.length) * 100}%`;
+}
+
+function fcRenderNav() {
+  const idx     = fcAllLessons.findIndex(l => l.id === fcLessonId);
+  const hasPrev = idx > 0;
+  const hasNext = idx < fcAllLessons.length - 1;
+  fcPrevBtn.disabled = !hasPrev;
+  fcNextBtn.disabled = !hasNext;
+  fcPrevName.textContent = hasPrev ? (fcAllLessons[idx-1].title || 'Ders ' + fcAllLessons[idx-1].number) : '—';
+  fcNextName.textContent = hasNext ? (fcAllLessons[idx+1].title || 'Ders ' + fcAllLessons[idx+1].number) : '—';
+  const cu = fcUnits.find(u => u.id === fcUnitId);
+  const cl = fcAllLessons.find(l => l.id === fcLessonId);
+  fcPillUnit.textContent = cu?.title || '—';
+  fcPillLsn.textContent  = cl?.title || ('Ders ' + cl?.number) || '—';
+}
+
+function fcFlip() {
+  fcFlipped = !fcFlipped;
+  fcInner.classList.toggle('flipped', fcFlipped);
+}
+
+function fcNavigate(dir) {
+  if (!fcCards.length) return;
+  fcFlipped = false; fcInner.classList.remove('flipped');
+  setTimeout(() => { fcCurrent = (fcCurrent + dir + fcCards.length) % fcCards.length; fcRenderCard(); }, 50);
+}
+
+async function fcNavigateLesson(dir) {
+  const idx = fcAllLessons.findIndex(l => l.id === fcLessonId);
+  if (idx === -1) return;
+  const next = idx + dir;
+  if (next < 0 || next >= fcAllLessons.length) return;
+  const nl = fcAllLessons[next];
+  if (nl.unit_id !== fcUnitId) {
+    fcUnitId = nl.unit_id; fcUnitSel.value = fcUnitId;
+    const { data } = await sb.from('lessons').select('id,number,title').eq('unit_id', fcUnitId).order('number');
+    fcLessons = data || [];
+    fcLessonSel.innerHTML = fcLessons.map(l =>
+      `<option value="${l.id}">${l.title || 'Ders ' + l.number}</option>`).join('');
+  }
+  fcLessonId = nl.id; fcLessonSel.value = fcLessonId;
+  await fcLoadCards();
+}
+
+fcUnitSel.addEventListener('change', async () => {
+  fcUnitId = Number(fcUnitSel.value); await fcLoadLessons();
+});
+fcLessonSel.addEventListener('change', async () => {
+  fcLessonId = Number(fcLessonSel.value);
+  const l = fcAllLessons.find(l => l.id === fcLessonId);
+  if (l && l.unit_id !== fcUnitId) { fcUnitId = l.unit_id; fcUnitSel.value = fcUnitId; }
+  await fcLoadCards();
+});
+
+// ══════════════════════════════
+//  QUIZ
+// ══════════════════════════════
+let qUnits = [], qLessons = [], qQuestions = [];
+let qUnitId = null, qLessonId = null;
+let qPhase = 'select', qCurrent = 0, qSelected = null, qConfirmed = false, qAnswers = [];
+
+const OPTS  = ['A','B','C','D'];
+const OKEYS = ['option_a','option_b','option_c','option_d'];
+
+const qUnitSel   = document.getElementById('q-unit-select');
+const qLessonSel = document.getElementById('q-lesson-select');
+
+async function qInit() {
+  qUnits = sharedUnits;
+  if (!qUnits.length) return;
+  qUnitSel.innerHTML = qUnits.map(u =>
+    `<option value="${u.id}">${u.title || 'Ünite ' + u.number}</option>`).join('');
+  qUnitId = qUnits[0].id; qUnitSel.value = qUnitId;
+  await qLoadLessons();
+}
+
+async function qLoadLessons() {
+  const { data } = await sb.from('lessons').select('id,number,title')
+    .eq('unit_id', qUnitId).order('number');
+  qLessons = data || [];
+  qLessonSel.innerHTML = qLessons.map(l =>
+    `<option value="${l.id}">${l.title || 'Ders ' + l.number}</option>`).join('');
+  if (!qLessons.length) { qLessonId = null; return; }
+  qLessonId = qLessons[0].id; qLessonSel.value = qLessonId;
+  await qLoadQuestions();
+}
+
+async function qLoadQuestions() {
+  if (!qLessonId) return;
+  document.getElementById('q-start-sub').textContent = 'Yükleniyor…';
+  document.getElementById('q-start-btn').disabled = true;
+  const { data } = await sb.from('quiz_questions').select('*')
+    .eq('lesson_id', qLessonId).order('order_index');
+  qQuestions = data || [];
+  qUpdateStartCard();
+  document.getElementById('q-start-btn').disabled = false;
+}
+
+function qUpdateStartCard() {
+  const u = qUnits.find(u => u.id === qUnitId);
+  const l = qLessons.find(l => l.id === qLessonId);
+  document.getElementById('q-start-title').textContent = `${u?.title || '—'} · ${l?.title || '—'}`;
+  document.getElementById('q-start-sub').textContent   = qQuestions.length > 0
+    ? `${qQuestions.length} soru · Çoktan seçmeli`
+    : 'Bu ders için henüz soru eklenmemiş.';
+  document.getElementById('q-start-btn').style.display = qQuestions.length > 0 ? '' : 'none';
+}
+
+function qShowPhase(p) {
+  qPhase = p;
+  document.getElementById('q-phase-select').classList.toggle('hidden', p !== 'select');
+  document.getElementById('q-phase-quiz').classList.toggle('hidden',   p !== 'quiz');
+  document.getElementById('q-phase-result').classList.toggle('hidden', p !== 'result');
+}
+
+function qStart() {
+  if (!qQuestions.length) return;
+  qCurrent = 0; qSelected = null; qConfirmed = false; qAnswers = [];
+  qShowPhase('quiz'); qRenderQuestion();
+}
+
+function qRenderQuestion() {
+  const q = qQuestions[qCurrent];
+  document.getElementById('q-prog-label').textContent = `${qCurrent + 1} / ${qQuestions.length}`;
+  document.getElementById('q-prog-fill').style.width  = `${((qCurrent + 1) / qQuestions.length) * 100}%`;
+  document.getElementById('q-question').textContent   = q.question;
+  const list = document.getElementById('q-opt-list');
+  list.innerHTML = '';
+  OPTS.forEach((lbl, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn'; btn.dataset.lbl = lbl;
+    btn.innerHTML = `<span class="opt-tag">${lbl}</span><span class="opt-text">${q[OKEYS[idx]]}</span><span class="opt-icon"></span>`;
+    btn.addEventListener('click', () => qSelect(lbl));
+    list.appendChild(btn);
+  });
+  document.getElementById('q-action-area').innerHTML =
+    `<button class="action-btn" id="q-action-btn" onclick="qConfirm()" disabled>Cevapla</button>`;
+}
+
+function qSelect(lbl) {
+  if (qConfirmed) return;
+  qSelected = lbl;
+  document.querySelectorAll('.opt-btn').forEach(b => b.classList.toggle('selected', b.dataset.lbl === lbl));
+  document.getElementById('q-action-btn').disabled = false;
+}
+
+function qConfirm() {
+  if (!qSelected) return;
+  qConfirmed = true;
+  const q = qQuestions[qCurrent];
+  qAnswers.push({ question: q.question, selected: qSelected, correct: q.correct_option,
+    option_a: q.option_a, option_b: q.option_b, option_c: q.option_c, option_d: q.option_d });
+  document.querySelectorAll('.opt-btn').forEach(b => {
+    const lbl = b.dataset.lbl; b.disabled = true;
+    b.classList.remove('selected');
+    const icon = b.querySelector('.opt-icon');
+    if (lbl === q.correct_option)                              { b.classList.add('correct'); icon.textContent = '✓'; }
+    else if (lbl === qSelected && qSelected !== q.correct_option) { b.classList.add('wrong');   icon.textContent = '✗'; }
+    else b.classList.add('dim');
+  });
+  const ok = qSelected === q.correct_option;
+  document.getElementById('q-action-area').innerHTML = `
+    <div class="feedback-row">
+      <div class="feedback ${ok ? 'correct' : 'wrong'}">${ok ? '✓ Doğru!' : `✗ Yanlış — Doğru cevap: ${q.correct_option}`}</div>
+      <button class="next-btn" onclick="qNext()">${qCurrent + 1 >= qQuestions.length ? 'Sonuçları Gör' : 'Sonraki →'}</button>
+    </div>`;
+}
+
+function qNext() {
+  if (qCurrent + 1 >= qQuestions.length) { qShowResult(); return; }
+  qCurrent++; qSelected = null; qConfirmed = false; qRenderQuestion();
+}
+
+function qShowResult() {
+  qShowPhase('result');
+  const correct = qAnswers.filter(a => a.selected === a.correct).length;
+  const score   = qAnswers.length ? Math.round((correct / qAnswers.length) * 100) : 0;
+  document.getElementById('q-score').textContent       = score;
+  document.getElementById('q-result-title').textContent = score >= 80 ? 'Mükemmel! 🎉' : score >= 60 ? 'İyi iş! 👍' : 'Daha fazla çalış 💪';
+  document.getElementById('q-result-sub').textContent   = `${correct} / ${qAnswers.length} doğru`;
+  const wrongs = qAnswers.filter(a => a.selected !== a.correct);
+  const ws = document.getElementById('q-wrong-section');
+  if (wrongs.length) {
+    ws.classList.remove('hidden');
+    document.getElementById('q-wrong-list').innerHTML = wrongs.map(a => {
+      const opts = {A: a.option_a, B: a.option_b, C: a.option_c, D: a.option_d};
+      return `<div class="wrong-item">
+        <p class="wrong-q">${a.question}</p>
+        <div class="wrong-row"><span class="wrong-lbl">Seçtiğin:</span><span class="wrong-ans">${a.selected} — ${opts[a.selected]}</span></div>
+        <div class="wrong-row"><span class="correct-lbl">Doğrusu:</span><span class="correct-ans">${a.correct} — ${opts[a.correct]}</span></div>
+      </div>`;
+    }).join('');
+  } else ws.classList.add('hidden');
+}
+
+qUnitSel.addEventListener('change', async () => {
+  qUnitId = Number(qUnitSel.value); qShowPhase('select'); await qLoadLessons();
+});
+qLessonSel.addEventListener('change', async () => {
+  qLessonId = Number(qLessonSel.value); qShowPhase('select'); await qLoadQuestions(); qUpdateStartCard();
+});
+
+// ══════════════════════════════
+//  SLIDES
+// ══════════════════════════════
+let slUnits = [], slLessons = [], slSlides = [];
+let slUnitId = null, slLessonId = null;
+let slCurrent = 0, slAnimating = false;
+
+const slUnitSel   = document.getElementById('sl-unit-select');
+const slLessonSel = document.getElementById('sl-lesson-select');
+const slShow      = document.getElementById('sl-show');
+const slStage     = document.getElementById('sl-stage');
+
+async function slInit() {
+  slUnits = sharedUnits;
+  if (!slUnits.length) return;
+  slUnitSel.innerHTML = slUnits.map(u =>
+    `<option value="${u.id}">${u.title || 'Ünite ' + u.number}</option>`).join('');
+  slUnitId = slUnits[0].id; slUnitSel.value = slUnitId;
+  await slLoadLessons();
+}
+
+async function slLoadLessons() {
+  const { data } = await sb.from('lessons').select('id,number,title').eq('unit_id', slUnitId).order('number');
+  slLessons = data || [];
+  slLessonSel.innerHTML = slLessons.map(l =>
+    `<option value="${l.id}">${l.title || 'Ders ' + l.number}</option>`).join('');
+  if (!slLessons.length) { slLessonId = null; return; }
+  slLessonId = slLessons[0].id; slLessonSel.value = slLessonId;
+  await slLoadSlides();
+}
+
+async function slLoadSlides() {
+  if (!slLessonId) return;
+  document.getElementById('sl-start-sub').textContent = 'Yükleniyor…';
+  document.getElementById('sl-actions').style.display = 'none';
+  const { data } = await sb.from('slides').select('*').eq('lesson_id', slLessonId).order('order_index');
+  slSlides = data || [];
+  slUpdateStartCard();
+}
+
+function slGetBg(sl) {
+  if (!sl) return '#1d1d1f';
+  if (sl.bg_color) return sl.bg_color;
+  const map = { title: 'linear-gradient(135deg,#1d1d1f 0%,#2d2d35 100%)', content: 'linear-gradient(160deg,#18181b 0%,#27272a 100%)', image: '#000', quote: 'linear-gradient(135deg,#0f172a 0%,#1e293b 100%)' };
+  return map[sl.layout] || map.content;
+}
+
+function slUpdateStartCard() {
+  const u = slUnits.find(u => u.id === slUnitId);
+  const l = slLessons.find(l => l.id === slLessonId);
+  document.getElementById('sl-start-title').textContent = `${u?.title || '—'} · ${l?.title || '—'}`;
+  if (!slSlides.length) {
+    document.getElementById('sl-start-sub').textContent = 'Bu ders için henüz slayt eklenmemiş.';
+    document.getElementById('sl-thumb-grid').innerHTML = '';
+    document.getElementById('sl-actions').style.display = 'none';
+    return;
+  }
+  document.getElementById('sl-start-sub').textContent = `${slSlides.length} slayt`;
+  document.getElementById('sl-actions').style.display = 'flex';
+  const grid = document.getElementById('sl-thumb-grid');
+  grid.innerHTML = slSlides.map((sl, i) => `
+    <div class="sl-thumb" style="background:${slGetBg(sl)}" onclick="slStartAt(${i})">
+      <span class="sl-thumb-num">${i + 1}</span>
+      ${sl.title ? `<p class="sl-thumb-title">${sl.title}</p>` : ''}
+    </div>`).join('');
+}
+
+function slStart() { slStartAt(0); }
+
+function slStartAt(idx) {
+  slCurrent = idx;
+  slShow.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  slRenderSlide();
+  slRenderDots();
+  // Request fullscreen
+  const el = slShow;
+  if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+}
+
+function slClose() {
+  slShow.classList.remove('active');
+  document.body.style.overflow = '';
+  if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+}
+
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) slClose();
+});
+document.addEventListener('webkitfullscreenchange', () => {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) slClose();
+});
+
+function slGo(dir) {
+  if (slAnimating) return;
+  const next = slCurrent + dir;
+  if (next < 0 || next >= slSlides.length) return;
+  slAnimating = true;
+  const cls = dir > 0 ? 'anim-next' : 'anim-prev';
+  slCurrent = next;
+  slRenderSlide(cls);
+  slRenderDots();
+  setTimeout(() => { slAnimating = false; }, 350);
+}
+
+function slRenderSlide(animCls = '') {
+  const sl = slSlides[slCurrent];
+  if (!sl) return;
+  document.getElementById('sl-count').textContent = `${slCurrent + 1} / ${slSlides.length}`;
+  document.getElementById('sl-prog-fill').style.width = `${((slCurrent + 1) / slSlides.length) * 100}%`;
+  document.getElementById('sl-prev').disabled = slCurrent === 0;
+  document.getElementById('sl-next').disabled = slCurrent >= slSlides.length - 1;
+  const l = slLessons.find(l => l.id === slLessonId);
+  document.getElementById('sl-lesson-chip').textContent = l?.title || '—';
+
+  const bg = slGetBg(sl);
+  let inner = '';
+
+  // Image layout → tam ekran <img>
+  if (sl.layout === 'image' && sl.image_url) {
+    inner = `<div class="sl-layout sl-image-layout">
+      <img src="${sl.image_url}" alt="${sl.title || ''}" class="sl-full-img"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;flex-direction:column;align-items:center;justify-content:center;position:absolute;inset:0">
+        ${sl.title    ? `<h2 class="sl-heading" style="text-align:center">${sl.title}</h2>` : ''}
+        ${sl.subtitle ? `<p class="sl-body" style="text-align:center">${sl.subtitle}</p>` : ''}
+      </div>
+    </div>`;
+  } else {
+    // Diğer layout'larda image_url varsa arka plan olarak ekle (tam opak)
+    const bgImg = sl.image_url
+      ? `<div style="position:absolute;inset:0;background:url('${sl.image_url}') center/cover no-repeat;opacity:0.9"></div>`
+      : '';
+
+    if (sl.layout === 'title') {
+      inner = `${bgImg}<div class="sl-layout sl-title-layout" style="${sl.image_url ? 'background:rgba(0,0,0,0.35)' : ''}">
+        ${sl.eyebrow  ? `<p class="sl-eyebrow">${sl.eyebrow}</p>` : ''}
+        ${sl.title    ? `<h1 class="sl-title-big">${sl.title}</h1>` : ''}
+        ${sl.subtitle ? `<p class="sl-subtitle">${sl.subtitle}</p>` : ''}
+      </div>`;
+    } else if (sl.layout === 'quote') {
+      inner = `${bgImg}<div class="sl-layout sl-quote-layout" style="${sl.image_url ? 'background:rgba(0,0,0,0.5)' : ''}">
+        <span class="sl-quote-marks">"</span>
+        <p class="sl-quote-text">${sl.body || sl.title || ''}</p>
+        ${sl.subtitle ? `<p class="sl-quote-author">— ${sl.subtitle}</p>` : ''}
+      </div>`;
+    } else {
+      // content (default)
+      const bullets = sl.bullets ? sl.bullets.split('\n').filter(Boolean).map(b => `<li class="sl-bullet">${b}</li>`).join('') : '';
+      inner = `${bgImg}<div class="sl-layout sl-content-layout" style="${sl.image_url ? 'background:rgba(0,0,0,0.55)' : ''}">
+        ${sl.title    ? `<h2 class="sl-heading">${sl.title}</h2>` : ''}
+        ${sl.subtitle ? `<p class="sl-body">${sl.subtitle}</p>` : ''}
+        ${sl.body     ? `<p class="sl-body">${sl.body}</p>` : ''}
+        ${bullets     ? `<ul class="sl-bullets">${bullets}</ul>` : ''}
+      </div>`;
+    }
+  }
+
+  slStage.innerHTML = `<div class="${animCls}" style="position:absolute;inset:0;background:${bg}">${inner}</div>`;
+}
+
+function slRenderDots() {
+  document.getElementById('sl-dots').innerHTML = slSlides.map((_, i) =>
+    `<button class="sl-dot ${i === slCurrent ? 'active' : ''}" onclick="slJump(${i})"></button>`).join('');
+}
+
+function slJump(i) { const dir = i > slCurrent ? 1 : -1; slCurrent = i; slRenderSlide(dir > 0 ? 'anim-next' : 'anim-prev'); slRenderDots(); }
+
+// ── Download helpers ──
+const slLoadScript = src => new Promise((res, rej) => {
+  if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
+  const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s);
+});
+
+const slToBase64 = url => new Promise(res => {
+  if (!url) { res(null); return; }
+  if (url.startsWith('data:')) { res(url); return; }
+  const img = new Image(); img.crossOrigin = 'anonymous';
+  img.onload = () => { const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img, 0, 0); res(c.toDataURL('image/jpeg', 0.92)); };
+  img.onerror = () => res(null); img.src = url;
+});
+
+async function slDownloadPDF() {
+  await slLoadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const W = 297, H = 210;
+  for (let i = 0; i < slSlides.length; i++) {
+    const sl = slSlides[i]; if (i > 0) doc.addPage();
+    if (sl.image_url) {
+      const b64 = await slToBase64(sl.image_url);
+      if (b64) doc.addImage(b64, 'JPEG', 0, 0, W, H);
+      else { doc.setFillColor(20,20,20); doc.rect(0,0,W,H,'F'); }
+    } else {
+      doc.setFillColor(29,29,31); doc.rect(0,0,W,H,'F');
+      if (sl.title) { doc.setFontSize(sl.layout==='title'?36:26); doc.setTextColor(255,255,255); doc.text(sl.title, W/2, sl.layout==='title'?H/2-10:38, {align:'center',maxWidth:W-40}); }
+      if (sl.subtitle) { doc.setFontSize(16); doc.setTextColor(180,180,190); doc.text(sl.subtitle, W/2, sl.layout==='title'?H/2+16:58, {align:'center',maxWidth:W-60}); }
+      if (sl.body) { doc.setFontSize(13); doc.setTextColor(200,200,210); doc.text(doc.splitTextToSize(sl.body, W-60), W/2, 78, {align:'center'}); }
+      if (sl.bullets) { doc.setFontSize(13); doc.setTextColor(200,200,210); sl.bullets.split('\n').filter(Boolean).forEach((b,bi) => doc.text('• '+b, 30, 78+bi*16, {maxWidth:W-60})); }
+    }
+  }
+  const name = slLessons.find(l => l.id === slLessonId)?.title || 'slaytlar';
+  doc.save(`${name}.pdf`);
+}
+
+async function slDownloadPPTX() {
+  await slLoadScript('https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js');
+  const pptx = new window.PptxGenJS(); pptx.layout = 'LAYOUT_WIDE';
+  for (const sl of slSlides) {
+    const s = pptx.addSlide();
+    if (sl.image_url) {
+      const b64 = await slToBase64(sl.image_url);
+      if (b64) s.addImage({data:b64,x:0,y:0,w:'100%',h:'100%'});
+      else s.background = {color:'111111'};
+    } else {
+      s.background = {color:'1D1D1F'};
+      if (sl.title) s.addText(sl.title, {x:.5,y:sl.layout==='title'?2.5:.4,w:'90%',h:.9,fontSize:sl.layout==='title'?40:28,bold:true,color:'FFFFFF',align:'center'});
+      if (sl.subtitle) s.addText(sl.subtitle, {x:.5,y:sl.layout==='title'?4.0:1.5,w:'90%',h:.7,fontSize:18,color:'B4B4BE',align:'center'});
+      if (sl.body) s.addText(sl.body, {x:.5,y:2.2,w:'90%',h:3,fontSize:14,color:'C8C8D2',align:'center',valign:'top'});
+      if (sl.bullets) { const arr = sl.bullets.split('\n').filter(Boolean).map(b=>({text:b,options:{bullet:true}})); s.addText(arr,{x:.8,y:2.2,w:'85%',h:3.5,fontSize:14,color:'C8C8D2',valign:'top'}); }
+    }
+  }
+  const name = slLessons.find(l => l.id === slLessonId)?.title || 'slaytlar';
+  pptx.writeFile({fileName:`${name}.pptx`});
+}
+
+slUnitSel.addEventListener('change', async () => { slUnitId = Number(slUnitSel.value); await slLoadLessons(); });
+slLessonSel.addEventListener('change', async () => { slLessonId = Number(slLessonSel.value); await slLoadSlides(); });
+
+// ══════════════════════════════
+//  KEYBOARD
+// ══════════════════════════════
+document.addEventListener('keydown', e => {
+  if (currentPage === 'fc') {
+    if (e.key === 'ArrowLeft')  fcNavigate(-1);
+    if (e.key === 'ArrowRight') fcNavigate(1);
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); fcFlip(); }
+  }
+  if (currentPage === 'quiz' && qPhase === 'quiz') {
+    const map = {'1':'A','2':'B','3':'C','4':'D','a':'A','b':'B','c':'C','d':'D'};
+    if (map[e.key] && !qConfirmed) qSelect(map[e.key]);
+    if ((e.key === 'Enter' || e.key === ' ') && !qConfirmed && qSelected) { e.preventDefault(); qConfirm(); }
+  }
+  if (slShow.classList.contains('active')) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') slGo(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   slGo(-1);
+    if (e.key === 'Escape') slClose();
+  }
+});
+
+// ══════════════════════════════
+//  INIT
+// ══════════════════════════════
+(async () => {
+  await loadSharedData();
+  await Promise.all([fcInit(), qInit(), slInit()]);
+})();
+</script>
+</body>
+</html>
